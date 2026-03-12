@@ -54,52 +54,86 @@ def deep_summarize_pdf(text):
         return f"Error: {str(e)}", []
 
 def create_dashboard(data, title="Dashboard", pdf_summary=None):
-    fig, axs = plt.subplots(2, 2, figsize=(14, 10))
-    fig.suptitle(title, fontsize=16, fontweight='bold')
+    # Create figure with better spacing
+    fig = plt.figure(figsize=(16, 10))
+    fig.patch.set_facecolor('#f8f9fa')
     
-    # Top Left: Summary
-    axs[0, 0].axis('off')
+    # Add main title
+    fig.suptitle(title, fontsize=18, fontweight='bold', color='#2c3e50', y=0.98)
+    
+    # Create subplots with proper spacing
+    gs = fig.add_gridspec(2, 2, hspace=0.35, wspace=0.3)
+    
+    # Top Left: Executive Summary (Text Only)
+    ax1 = fig.add_subplot(gs[0, 0])
+    ax1.set_facecolor('white')
+    ax1.set_xlim(0, 1)
+    ax1.set_ylim(0, 1)
+    ax1.axis('off')
+    
     if pdf_summary:
-        axs[0, 0].text(0.05, 0.95, "📄 PDF DEEP SUMMARY", fontsize=14, fontweight='bold', color='#667eea')
-        axs[0, 0].text(0.05, 0.5, pdf_summary, fontsize=10, family='monospace', color='#2c3e50', verticalalignment='top')
+        ax1.text(0.05, 0.95, "📄 PDF DEEP SUMMARY", fontsize=14, fontweight='bold', color='#667eea')
+        ax1.text(0.05, 0.85, "📊 PDF Content Analysis", fontsize=10, color='#7f8c8d')
+        ax1.text(0.05, 0.5, pdf_summary, fontsize=10, family='monospace', color='#2c3e50',
+                verticalalignment='top', wrap=True)
     elif 'Revenue' in data.columns:
         max_rev = data['Revenue'].max()
         avg_rev = data['Revenue'].mean()
         summary_text = f"📌 KEY INSIGHTS\n\n• Max Revenue: ${max_rev}K\n• Avg Revenue: ${avg_rev:.2f}K\n• Total Records: {len(data)}"
-        axs[0, 0].text(0.05, 0.5, summary_text, fontsize=11, family='monospace', color='#2c3e50', verticalalignment='top')
+        ax1.text(0.05, 0.5, summary_text, fontsize=11, family='monospace', color='#2c3e50', verticalalignment='top')
     else:
         summary_text = f"📌 KEY INSIGHTS\n\n• Total Records: {len(data)}\n• Columns: {', '.join(data.columns)}"
-        axs[0, 0].text(0.05, 0.5, summary_text, fontsize=11, family='monospace', color='#2c3e50', verticalalignment='top')
-    axs[0, 0].set_title("Executive Summary", fontsize=12)
+        ax1.text(0.05, 0.5, summary_text, fontsize=11, family='monospace', color='#2c3e50', verticalalignment='top')
+    ax1.set_title("Executive Summary", fontsize=12, fontweight='bold')
     
-    # Top Right: Line Chart
+    # Top Right: Line Chart (Separate from text)
+    ax2 = fig.add_subplot(gs[0, 1])
+    ax2.set_facecolor('white')
     numeric_cols = data.select_dtypes(include=['number']).columns
     if len(numeric_cols) > 0:
-        axs[0, 1].plot(data.index, data[numeric_cols[0]], marker='o', color='#667eea', linewidth=2.5)
-        axs[0, 1].set_title(f"📈 {numeric_cols[0]} Trend", fontsize=14, fontweight='bold')
-        axs[0, 1].grid(True, linestyle='--', alpha=0.5)
+        ax2.plot(data.index, data[numeric_cols[0]], marker='o', color='#667eea', linewidth=2.5, markersize=8)
+        ax2.fill_between(data.index, data[numeric_cols[0]], alpha=0.2, color='#667eea')
+        ax2.set_title(f"📈 {numeric_cols[0]} Trend", fontsize=14, fontweight='bold', color='#2c3e50')
+        ax2.grid(True, linestyle='--', alpha=0.5)
+        ax2.set_xlabel("Index", fontsize=10)
+        ax2.set_ylabel(numeric_cols[0], fontsize=10)
     else:
-        axs[0, 1].text(0.5, 0.5, "No numeric data", ha='center')
-        axs[0, 1].axis('off')
+        ax2.text(0.5, 0.5, "No numeric data for trend", ha='center', fontsize=12, color='#7f8c8d')
+        ax2.axis('off')
     
-    # Bottom Left: PDF Summary
-    axs[1, 0].axis('off')
+    # Bottom Left: PDF Summary (Separate from charts)
+    ax3 = fig.add_subplot(gs[1, 0])
+    ax3.set_facecolor('white')
+    ax3.set_xlim(0, 1)
+    ax3.set_ylim(0, 1)
+    ax3.axis('off')
+    
     if pdf_summary:
-        axs[1, 0].text(0.05, 0.5, pdf_summary, fontsize=10, family='monospace', color='#2c3e50', verticalalignment='top')
+        ax3.text(0.05, 0.95, "📄 PDF DEEP SUMMARY", fontsize=14, fontweight='bold', color='#667eea')
+        ax3.text(0.05, 0.85, "📊 PDF Content Analysis", fontsize=10, color='#7f8c8d')
+        ax3.text(0.05, 0.5, pdf_summary, fontsize=10, family='monospace', color='#2c3e50',
+                verticalalignment='top', wrap=True)
     else:
-        axs[1, 0].text(0.5, 0.5, "No PDF uploaded", ha='center')
-    axs[1, 0].set_title("📄 PDF Deep Summary", fontsize=14, fontweight='bold')
+        ax3.text(0.5, 0.5, "No PDF uploaded", ha='center', fontsize=12, color='#7f8c8d')
+    ax3.set_title("📄 PDF Deep Summary", fontsize=14, fontweight='bold')
     
-    # Bottom Right: Bar Chart
+    # Bottom Right: Bar Chart (Separate from text)
+    ax4 = fig.add_subplot(gs[1, 1])
+    ax4.set_facecolor('white')
     if len(numeric_cols) > 1:
-        axs[1, 1].bar(range(len(data.index[:5])), data[numeric_cols[1]].values[:5], color='#764ba2')
-        axs[1, 1].set_title(f"📊 {numeric_cols[1]} (Top 5)", fontsize=14, fontweight='bold')
-        axs[1, 1].grid(True, linestyle='--', alpha=0.3)
+        colors = ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe']
+        ax4.bar(range(len(data.index[:5])), data[numeric_cols[1]].values[:5], 
+                color=colors[:len(data.index[:5])], edgecolor='white', linewidth=2)
+        ax4.set_title(f"📊 {numeric_cols[1]} (Top 5)", fontsize=14, fontweight='bold', color='#2c3e50')
+        ax4.set_xlabel("Index", fontsize=10)
+        ax4.set_ylabel(numeric_cols[1], fontsize=10)
+        ax4.grid(True, linestyle='--', alpha=0.3)
     else:
-        axs[1, 1].text(0.5, 0.5, "Need more numeric columns", ha='center')
-        axs[1, 1].axis('off')
+        ax4.text(0.5, 0.5, "Need more numeric columns", ha='center', fontsize=12, color='#7f8c8d')
+        ax4.axis('off')
     
-    plt.tight_layout()
+    # Add proper spacing
+    plt.tight_layout(rect=[0, 0, 1, 0.96])
     return fig
 
 def save_fig_to_bytes(fig):
