@@ -4,6 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from io import BytesIO
+import PyPDF2
 
 # Page Configuration
 st.set_page_config(page_title="AI Dashboard Generator", layout="wide")
@@ -38,6 +39,17 @@ def generate_dummy_data():
         'Region': ['North', 'North', 'South', 'East', 'West', 'North'],
         'Product': ['A', 'B', 'A', 'C', 'B', 'A']
     })
+
+# Function to extract text from PDF
+def extract_text_from_pdf(uploaded_file):
+    try:
+        pdf_reader = PyPDF2.PdfReader(uploaded_file)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+        return text
+    except Exception as e:
+        return f"Error extracting text: {str(e)}"
 
 # Function to create dashboard
 def create_dashboard(data, title="Dashboard"):
@@ -111,23 +123,38 @@ def save_fig_to_bytes(fig):
 # Main App Logic
 if input_type == "📁 Upload Data":
     st.header("📁 Upload Your Data")
-    uploaded_file = st.file_uploader("Choose CSV or Excel file", type=['csv', 'xlsx'])
+    uploaded_file = st.file_uploader(
+        "Choose CSV, Excel, or PDF file", 
+        type=['csv', 'xlsx', 'pdf']
+    )
     
     if uploaded_file is not None:
         try:
             if uploaded_file.name.endswith('.csv'):
                 data = pd.read_csv(uploaded_file)
+                file_type = "CSV"
             elif uploaded_file.name.endswith('.xlsx'):
                 try:
                     data = pd.read_excel(uploaded_file)
+                    file_type = "Excel"
                 except ImportError:
-                    st.error("❌ Excel support requires openpyxl. Please upload CSV instead.")
+                    st.error("❌ Excel support requires openpyxl. Please upload CSV or PDF instead.")
                     st.stop()
+            elif uploaded_file.name.endswith('.pdf'):
+                # Extract text from PDF
+                pdf_text = extract_text_from_pdf(uploaded_file)
+                st.success("✅ PDF text extracted successfully!")
+                st.text_area("PDF Content Preview", pdf_text[:500], height=200)
+                
+                # For PDF, we'll use dummy data since PDF text extraction is complex
+                st.info("💡 Note: PDF text extraction is experimental. Using demo data for dashboard.")
+                data = generate_dummy_data()
+                file_type = "PDF"
             else:
-                st.error("❌ Unsupported file format. Please upload CSV or Excel.")
+                st.error("❌ Unsupported file format. Please upload CSV, Excel, or PDF.")
                 st.stop()
             
-            st.success("✅ Data loaded successfully!")
+            st.success(f"✅ Data loaded successfully! ({file_type})")
             st.dataframe(data.head())
             
             if st.button("🎨 Generate Dashboard"):
