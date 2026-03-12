@@ -117,8 +117,15 @@ if input_type == "📁 Upload Data":
         try:
             if uploaded_file.name.endswith('.csv'):
                 data = pd.read_csv(uploaded_file)
+            elif uploaded_file.name.endswith('.xlsx'):
+                try:
+                    data = pd.read_excel(uploaded_file)
+                except ImportError:
+                    st.error("❌ Excel support requires openpyxl. Please upload CSV instead.")
+                    st.stop()
             else:
-                data = pd.read_excel(uploaded_file)
+                st.error("❌ Unsupported file format. Please upload CSV or Excel.")
+                st.stop()
             
             st.success("✅ Data loaded successfully!")
             st.dataframe(data.head())
