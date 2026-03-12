@@ -1,6 +1,3 @@
-# Install required packages
-!pip install streamlit pandas matplotlib seaborn openai -q
-
 # Import libraries
 import streamlit as st
 import pandas as pd
@@ -11,12 +8,11 @@ from io import BytesIO
 # Page Configuration
 st.set_page_config(page_title="AI Dashboard Generator", layout="wide")
 
-# Custom CSS for better UI
+# Custom CSS
 st.markdown("""
 <style>
     .main { background-color: #f5f5f5; }
     .stButton>button { width: 100%; }
-    .stTextArea>div>div>textarea { font-size: 14px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -24,7 +20,7 @@ st.markdown("""
 st.title("🤖 AI Dashboard Generator")
 st.markdown("Upload data or describe your problem → Get an automated dashboard!")
 
-# Sidebar for options
+# Sidebar
 with st.sidebar:
     st.header("⚙️ Settings")
     input_type = st.radio(
@@ -74,7 +70,7 @@ def create_dashboard(data, title="Dashboard"):
     axs[0, 0].text(0.1, 0.5, summary_text, fontsize=12, family='monospace')
     axs[0, 0].set_title("Executive Summary", fontsize=12)
     
-    # Top Right: Line Chart (if numeric columns exist)
+    # Top Right: Line Chart
     numeric_cols = data.select_dtypes(include=['number']).columns
     if len(numeric_cols) > 0:
         axs[0, 1].plot(data.index, data[numeric_cols[0]], marker='o', color='green', linewidth=2)
@@ -84,7 +80,7 @@ def create_dashboard(data, title="Dashboard"):
         axs[0, 1].text(0.5, 0.5, "No numeric data for trend", ha='center')
         axs[0, 1].axis('off')
     
-    # Bottom Left: Pie Chart (categorical)
+    # Bottom Left: Pie Chart
     cat_cols = data.select_dtypes(include=['object']).columns
     if len(cat_cols) > 0:
         cat_data = data[cat_cols[0]].value_counts()
@@ -131,7 +127,6 @@ if input_type == "📁 Upload Data":
                 fig = create_dashboard(data, f"Dashboard: {uploaded_file.name}")
                 st.pyplot(fig)
                 
-                # Fixed download button
                 img_bytes = save_fig_to_bytes(fig)
                 st.download_button(
                     label="📥 Download Dashboard Image",
