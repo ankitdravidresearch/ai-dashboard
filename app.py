@@ -51,14 +51,32 @@ def extract_text_from_pdf(uploaded_file):
     except Exception as e:
         return f"Error extracting text: {str(e)}"
 
+# Function to summarize text (simple keyword-based)
+def summarize_text(text, max_sentences=5):
+    try:
+        # Split text into sentences
+        sentences = text.replace('\n', ' ').split('. ')
+        # Return first N sentences as summary
+        summary = '. '.join(sentences[:max_sentences])
+        return summary if summary else "No text content found in PDF."
+    except Exception as e:
+        return f"Error summarizing: {str(e)}"
+
 # Function to create dashboard
-def create_dashboard(data, title="Dashboard"):
+def create_dashboard(data, title="Dashboard", pdf_summary=None):
     fig, axs = plt.subplots(2, 2, figsize=(14, 10))
     fig.suptitle(title, fontsize=16, fontweight='bold')
     
     # Top Left: Text Summary
     axs[0, 0].axis('off')
-    if 'Revenue' in data.columns:
+    if pdf_summary:
+        summary_text = (
+            f"📄 PDF TEXT SUMMARY\n\n"
+            f"{pdf_summary}\n\n"
+            f"📊 SUMMARY\n"
+            f"PDF content has been extracted and summarized."
+        )
+    elif 'Revenue' in data.columns:
         max_rev = data['Revenue'].max()
         avg_rev = data['Revenue'].mean()
         summary_text = (
@@ -92,15 +110,14 @@ def create_dashboard(data, title="Dashboard"):
         axs[0, 1].text(0.5, 0.5, "No numeric data for trend", ha='center')
         axs[0, 1].axis('off')
     
-    # Bottom Left: Pie Chart
-    cat_cols = data.select_dtypes(include=['object']).columns
-    if len(cat_cols) > 0:
-        cat_data = data[cat_cols[0]].value_counts()
-        axs[1, 0].pie(cat_data, labels=cat_data.index, autopct='%1.1f%%')
-        axs[1, 0].set_title(f"{cat_cols[0]} Distribution")
+    # Bottom Left: PDF Text Summary (NEW - replaces pie chart)
+    axs[1, 0].axis('off')
+    if pdf_summary:
+        axs[1, 0].text(0.1, 0.5, f"📄 PDF SUMMARY\n\n{pdf_summary[:300]}...", fontsize=10)
+        axs[1, 0].set_title("PDF Text Summary", fontsize=12)
     else:
-        axs[1, 0].text(0.5, 0.5, "No categorical data", ha='center')
-        axs[1, 0].axis('off')
+        axs[1, 0].text(0.5, 0.5, "No PDF uploaded", ha='center')
+        axs[1, 0].set_title("PDF Text Summary", fontsize=12)
     
     # Bottom Right: Bar Chart
     if len(numeric_cols) > 1:
@@ -130,6 +147,7 @@ if input_type == "📁 Upload Data":
     
     if uploaded_file is not None:
         try:
+            pdf_summary = None
             if uploaded_file.name.endswith('.csv'):
                 data = pd.read_csv(uploaded_file)
                 file_type = "CSV"
@@ -146,6 +164,11 @@ if input_type == "📁 Upload Data":
                 st.success("✅ PDF text extracted successfully!")
                 st.text_area("PDF Content Preview", pdf_text[:500], height=200)
                 
+                # Summarize PDF text
+                pdf_summary = summarize_text(pdf_text)
+                st.success("✅ PDF text summarized!")
+                st.text_area("PDF Summary", pdf_summary, height=150)
+                
                 # For PDF, we'll use dummy data since PDF text extraction is complex
                 st.info("💡 Note: PDF text extraction is experimental. Using demo data for dashboard.")
                 data = generate_dummy_data()
@@ -158,7 +181,7 @@ if input_type == "📁 Upload Data":
             st.dataframe(data.head())
             
             if st.button("🎨 Generate Dashboard"):
-                fig = create_dashboard(data, f"Dashboard: {uploaded_file.name}")
+                fig = create_dashboard(data, f"Dashboard: {uploaded_file.name}", pdf_summary)
                 st.pyplot(fig)
                 
                 img_bytes = save_fig_to_bytes(fig)
